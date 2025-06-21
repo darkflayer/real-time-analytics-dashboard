@@ -131,3 +131,27 @@ Once the server is running, you can interact with the system in two ways:
 ---
 
 ## Project Structure
+
+/real-time-analytics-dashboard
+├── config/
+│ └── db.js # MongoDB connection logic
+├── models/
+│ └── event.model.js # Mongoose schema for events
+├── node_modules/
+├── public/
+│ └── index.html # Frontend dashboard UI and client-side JS
+├── .gitignore # Specifies intentionally untracked files
+├── index.js # Main server file (Express, Socket.IO, routes)
+├── package.json
+└── README.md
+
+
+---
+
+## Future Improvements
+
+- [ ] **Authentication**: Secure the dashboard and API with user authentication (e.g., JWT).
+- [ ] **Date Filtering**: Add UI controls to filter dashboard data by date ranges (e.g., last 7 days, last 30 days).
+- [ ] **Data Caching**: Implement a caching layer with **Redis** to reduce database load for frequent requests.
+- [ ] **Containerization**: Create a `Dockerfile` and `docker-compose.yml` for easy deployment.
+- [ ] **Advanced Metrics**: Add more complex analytics, such as conversion funnels and user retention charts.
