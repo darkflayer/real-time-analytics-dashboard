@@ -1,0 +1,135 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Real-Time Analytics Dashboard</title>
+  <!-- Import Chart.js library -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #1a1a1a; color: #e0e0e0; margin: 0; padding: 20px; }
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+    .widget { background: #2c2c2c; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+    .widget h2 { margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px; font-size: 1.2em; color: #00bcd4; }
+    .health-stats { display: flex; justify-content: space-around; text-align: center; }
+    .stat h3 { margin: 0 0 5px 0; font-size: 2em; color: #fff; }
+    .stat p { margin: 0; color: #aaa; }
+    .chart-container { position: relative; height: 300px; }
+  </style>
+</head>
+<body>
+  <div class="dashboard-grid">
+    <!-- Widget 1: Health Stats -->
+    <div class="widget">
+      <h2>Health</h2>
+      <div class="health-stats">
+        <div class="stat">
+          <h3 id="total-events-today">0</h3>
+          <p>Total Events Today</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Widget 2: Tasks (Donut Chart) -->
+    <div class="widget">
+      <h2>Events by Type</h2>
+      <div class="chart-container">
+        <canvas id="tasks-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- Widget 3: Progress (Horizontal Bar Chart) -->
+    <div class="widget">
+      <h2>Top 5 Pages</h2>
+      <div class="chart-container">
+        <canvas id="progress-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- Widget 4: Workload (Bar Chart) -->
+    <div class="widget">
+      <h2>Top 5 Users</h2>
+      <div class="chart-container">
+        <canvas id="workload-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // --- Client-side Logic will go here ---
+    const socket = io("http://localhost:3001");
+
+// A global object to hold our chart instances
+const charts = {};
+const chartColors = ['#4bc0c0', '#36a2eb', '#ffcd56', '#ff6384', '#9966ff', '#c9cbcf'];
+
+// Helper function to create or update a chart
+const createOrUpdateChart = (chartId, chartType, data, options = {}) => {
+  const ctx = document.getElementById(chartId).getContext('2d');
+  if (charts[chartId]) {
+    // If chart exists, update its data and refresh
+    charts[chartId].data = data;
+    charts[chartId].update();
+  } else {
+    // If chart doesn't exist, create it
+    charts[chartId] = new Chart(ctx, {
+      type: chartType,
+      data: data,
+      options: options,
+    });
+  }
+};
+
+// Listen for the 'dashboardUpdate' event from the server
+socket.on('dashboardUpdate', (stats) => {
+  console.log('Received dashboard update:', stats);
+
+  // 1. Update Health Stats
+  document.getElementById('total-events-today').innerText = stats.totalEventsToday || 0;
+
+  // 2. Update Events by Type Donut Chart
+  if (stats.eventsByType && stats.eventsByType.length > 0) {
+    const eventsByTypeData = {
+      labels: stats.eventsByType.map(item => item._id),
+      datasets: [{
+        data: stats.eventsByType.map(item => item.count),
+        backgroundColor: chartColors,
+      }]
+    };
+    const donutOptions = { maintainAspectRatio: false, responsive: true };
+    createOrUpdateChart('tasks-chart', 'doughnut', eventsByTypeData, donutOptions);
+  }
+
+  // 3. Update Top Pages Horizontal Bar Chart
+  if (stats.topPages && stats.topPages.length > 0) {
+    const topPagesData = {
+      labels: stats.topPages.map(item => item._id), // e.g., '/products/1'
+      datasets: [{
+        label: 'Page Views',
+        data: stats.topPages.map(item => item.count),
+        backgroundColor: '#36a2eb'
+      }]
+    };
+    const horizontalBarOptions = { indexAxis: 'y', maintainAspectRatio: false, responsive: true };
+    createOrUpdateChart('progress-chart', 'bar', topPagesData, horizontalBarOptions);
+  }
+
+  // 4. Update Top Users Bar Chart
+  if (stats.topUsers && stats.topUsers.length > 0) {
+    const topUsersData = {
+      labels: stats.topUsers.map(item => item._id), // e.g., 'user-123'
+      datasets: [{
+        label: 'Events Count',
+        data: stats.topUsers.map(item => item.count),
+        backgroundColor: '#ffcd56'
+      }]
+    };
+    const barOptions = { maintainAspectRatio: false, responsive: true };
+    createOrUpdateChart('workload-chart', 'bar', topUsersData, barOptions);
+  }
+});
+  </script>
+</body>
+</html>
